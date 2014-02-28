@@ -46,7 +46,10 @@
 
 			}
 			
-			function de2ra(degree){ return degree*(Math.PI/180); }
+			function de2ra(degree)
+			{ 
+				return degree*(Math.PI/180); 
+			}
 			
 			function addWall(x, y)
 			{
@@ -91,12 +94,12 @@
 			celingTex.wrapS = THREE.RepeatWrapping;
 			celingTex.wrapT = THREE.RepeatWrapping;
 			celingTex.repeat.set(35, 35);
-			var material3 = new THREE.MeshBasicMaterial({map: celingTex});
-			var celing = new THREE.Mesh(new THREE.PlaneGeometry(35, 35), material3);
+			var celingMat = new THREE.MeshBasicMaterial({map: celingTex});
+			var celing = new THREE.Mesh(new THREE.PlaneGeometry(35, 35), celingMat);
 			celing.position.set(0,0.5,0);
 			celing.rotation.x = de2ra(90);
 			scene.add(celing)
-			
+
 			goonTex.magFilter = THREE.NearestFilter;
 			var goonMat = new THREE.MeshBasicMaterial({map: goonTex, transparent: true});
 			
@@ -105,6 +108,7 @@
 				this.geometry =	new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9), goonMat);
 				this.geometry.position.set(x, -0.05, y);
 				scene.add(this.geometry);
+				this.dead = false;
 				this.update = function()
 				{
 					this.geometry.lookAt(new THREE.Vector3(
@@ -112,12 +116,57 @@
 						this.geometry.position.y,
 						camera.position.z));
 				}
+				this.glib = function()
+				{
+					if(this.dead == false){
+						scene.remove(this.geometry);
+						for(var i=0; i < 200; i++)
+						{
+							console.log('foo');
+							var Vx = (Math.random()*0.1)-0.05;
+							var Vy = Math.random()*0.04;
+							var Vz = (Math.random()*0.1)-0.05;
+							particles.push(new particle(this.geometry.position.x, this.geometry.position.y, this.geometry.position.z, Vx, Vy, Vz, 0.3, 0.001, 0.05, 0xff0000));
+						}
+						this.dead = true;
+					}
+				}
 			}
 			
+			var particles = [];
 			var goon0 = new mob(2, 2);
-			var goon1 = new mob(1, 2);
-			var goon2 = new mob(3, 2);
 			
+			function particle(x, y, z, Vx, Vy, Vz, bounce, weight, size, color)
+			{	
+				this.mat = new THREE.MeshBasicMaterial({color: color});
+				this.geometry = new THREE.Mesh(new THREE.PlaneGeometry(size, size), this.mat);
+				this.geometry.position.set(x, y, z);
+				scene.add(this.geometry);
+
+				this.update = function()
+				{
+					this.geometry.lookAt(camera.position);
+					if (this.geometry.position.y < -0.5)
+					{
+						Vx *= bounce;
+						Vy *= -bounce;
+						Vz *= bounce;
+						this.geometry.position.y = -0.5;
+					}
+					if (this.geometry.position.y > 0.5)
+					{
+						Vx *= bounce;
+						Vy *= -bounce;
+						Vz *= bounce;
+						this.geometry.position.y = 0.5;
+					}
+					this.geometry.position.x += Vx;
+					this.geometry.position.y += Vy;
+					this.geometry.position.z += Vz;
+					Vy -= weight;	
+				}
+			}
+	
 			var dungeon = 
 				[[1,1,1,1,1],
 				[1,0,0,0,1],
@@ -144,13 +193,19 @@
 				requestAnimationFrame(render);
 				handleMovement();
 				goon0.update();
-				goon1.update();
-				goon2.update();
+				for(var i in particles)
+				{
+					particles[i].update();
+				}
 				renderer.render(scene, camera);
 			};
 			
 			function handleMovement()
 			{
+				if( keyboard.pressed("F") )
+				{
+					goon0.glib();
+				}
 				if( keyboard.pressed("Q") )
 				{
 					camera.rotation.y += LOOKSPEED;
