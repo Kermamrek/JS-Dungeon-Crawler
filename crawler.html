@@ -11,22 +11,28 @@
 				overflow: hidden;
 				height: 100%;
 			}
-			#options
+			img.crosshair
 			{
-				padding-left: 3px;
-				float: right;
-				width: 150px;
-				height: 100%;
-				color: white;
-				background-color:#132538;
+				position: absolute;
+				top: 50%;
+				left: 50%;
+				width: 32px;
+				height: 32px;
+				margin-top: -16x;
+				margin-left: -16px;
+				image-rendering: -moz-crisp-edges;
+				image-rendering: -o-crisp-edges;
+				image-rendering: -webkit-optimize-contrast;
+				image-rendering: optimize-contrast;
+				-ms-interpolation-mode: nearest-neighbor;
 			}
 		</style>
 	</head>
 	<body>
-		<div id = "options">
-			options and stuff would go here
-		</div>
 		<div id = "game"></div>
+		<div id = "ui">
+			<img class = crosshair src = './images/crosshair.png'>
+		</div>
 		<script src='./THREE/three.min.js'></script>
 		<script src='./THREE/THREEx.KeyboardState.js'></script>
 		<script>
@@ -122,11 +128,14 @@
 						scene.remove(this.geometry);
 						for(var i=0; i < 200; i++)
 						{
-							console.log('foo');
 							var Vx = (Math.random()*0.1)-0.05;
-							var Vy = Math.random()*0.04;
+							var Vy = Math.random()*0.02;
 							var Vz = (Math.random()*0.1)-0.05;
-							particles.push(new particle(this.geometry.position.x, this.geometry.position.y, this.geometry.position.z, Vx, Vy, Vz, 0.3, 0.001, 0.05, 0xff0000));
+							particles.push(new particle(
+								this.geometry.position.x, 
+								this.geometry.position.y, 
+								this.geometry.position.z, 
+								Vx, Vy, Vz, 0.3, 0.001, 0.08, 200, 0xff0000));
 						}
 						this.dead = true;
 					}
@@ -134,9 +143,10 @@
 			}
 			
 			var particles = [];
-			var goon0 = new mob(2, 2);
+			var mobs = [];
+			mobs.push(new mob(2, 2));
 			
-			function particle(x, y, z, Vx, Vy, Vz, bounce, weight, size, color)
+			function particle(x, y, z, Vx, Vy, Vz, bounce, weight, size, life, color)
 			{	
 				this.mat = new THREE.MeshBasicMaterial({color: color});
 				this.geometry = new THREE.Mesh(new THREE.PlaneGeometry(size, size), this.mat);
@@ -148,22 +158,33 @@
 					this.geometry.lookAt(camera.position);
 					if (this.geometry.position.y < -0.5)
 					{
+						this.geometry.position.y = -0.5;
 						Vx *= bounce;
 						Vy *= -bounce;
 						Vz *= bounce;
-						this.geometry.position.y = -0.5;
 					}
 					if (this.geometry.position.y > 0.5)
 					{
+						this.geometry.position.y = 0.5;
 						Vx *= bounce;
 						Vy *= -bounce;
 						Vz *= bounce;
-						this.geometry.position.y = 0.5;
 					}
 					this.geometry.position.x += Vx;
 					this.geometry.position.y += Vy;
 					this.geometry.position.z += Vz;
-					Vy -= weight;	
+					Vy -= weight;
+					life -= 1;
+					if(life == 0)
+					{
+						this.kill();
+					}
+				}
+
+				this.kill = function()
+				{
+					scene.remove(this.geometry);
+					particles.splice(particles.indexOf(this), 1);		
 				}
 			}
 	
@@ -192,7 +213,10 @@
 			var render = function () {
 				requestAnimationFrame(render);
 				handleMovement();
-				goon0.update();
+				for(var i in mobs)
+				{
+					mobs[i].update();
+				}
 				for(var i in particles)
 				{
 					particles[i].update();
@@ -204,7 +228,10 @@
 			{
 				if( keyboard.pressed("F") )
 				{
-					goon0.glib();
+					if( mobs[0].geometry.position.x == camera.position.x )
+					{
+						mobs[0].glib();
+					}				
 				}
 				if( keyboard.pressed("Q") )
 				{
