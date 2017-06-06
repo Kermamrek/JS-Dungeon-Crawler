@@ -2,9 +2,9 @@
 	<head>
 		<title>Dungeon Crawler</title>
 		<style>
-			body 
-			{ 
-				margin: 0px; 
+			body
+			{
+				margin: 0px;
 			}
 			#game
 			{
@@ -37,55 +37,57 @@
 		<script src='./THREE/THREEx.KeyboardState.js'></script>
 		<script>
 			var LOOKSPEED = 0.03;
-			var MOVESPEED = 0.05;
+			var MOVESPEED = 1;
 			var PLAYERSIZE = 0.2;
 			var FOV = 70;
-			
+			var cooldowntimer = 0;
+			var CDTIME = 200;
+
 			window.addEventListener( 'resize', onWindowResize, false );
-			
+
 			function onWindowResize()
 			{
 				camera.aspect = game.offsetWidth/game.offsetHeight;
 				camera.updateProjectionMatrix();
-				
+
 				renderer.setSize(game.offsetWidth, game.offsetHeight);
 
 			}
-			
+
 			function de2ra(degree)
-			{ 
-				return degree*(Math.PI/180); 
+			{
+				return degree*(Math.PI/180);
 			}
-			
+
 			function addWall(x, y)
 			{
 				var cube = new THREE.Mesh(new THREE.CubeGeometry(1, 1, 1), wallMat);
 				cube.position.set(x,0,y);
 				scene.add(cube);
 			}
-			
+
 			var game = document.getElementById("game");
-			
+
 			var scene = new THREE.Scene();
 			scene.fog = new THREE.Fog(0x000000, 0.1, 10);
-			
+
 			var camera = new THREE.PerspectiveCamera(FOV, game.offsetWidth/game.offsetHeight, 0.01, 30);
 			camera.position.set(2, 0.2, 6);
-			
+
 			var keyboard = new THREEx.KeyboardState();
 
 			var renderer = new THREE.WebGLRenderer();
 			renderer.setSize(game.offsetWidth, game.offsetHeight);
 			game.appendChild(renderer.domElement);
-			
+
 			var wallTex = THREE.ImageUtils.loadTexture('./images/wall.png');
 			var celingTex = THREE.ImageUtils.loadTexture('./images/celing.png');
 			var floorTex = THREE.ImageUtils.loadTexture('./images/floor.png');
 			var goonTex = THREE.ImageUtils.loadTexture('./images/goon.png');
-			
+
 			wallTex.magFilter = THREE.NearestFilter;
 			var wallMat = new THREE.MeshBasicMaterial({map: wallTex});
-			
+
 			floorTex.magFilter = THREE.NearestFilter;
 			floorTex.wrapS = THREE.RepeatWrapping;
 			floorTex.wrapT = THREE.RepeatWrapping;
@@ -95,7 +97,7 @@
 			floor.position.set(0,-0.5,0);
 			floor.rotation.x = de2ra(-90);
 			scene.add(floor)
-			
+
 			celingTex.magFilter = THREE.NearestFilter;
 			celingTex.wrapS = THREE.RepeatWrapping;
 			celingTex.wrapT = THREE.RepeatWrapping;
@@ -108,7 +110,7 @@
 
 			goonTex.magFilter = THREE.NearestFilter;
 			var goonMat = new THREE.MeshBasicMaterial({map: goonTex, transparent: true});
-			
+
 			function mob(x,y)
 			{
 				this.geometry =	new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9), goonMat);
@@ -132,22 +134,22 @@
 							var Vy = Math.random()*0.02;
 							var Vz = (Math.random()*0.1)-0.05;
 							particles.push(new particle(
-								this.geometry.position.x, 
-								this.geometry.position.y, 
-								this.geometry.position.z, 
+								this.geometry.position.x,
+								this.geometry.position.y,
+								this.geometry.position.z,
 								Vx, Vy, Vz, 0.3, 0.001, 0.08, 200, 0xff0000));
 						}
 						this.dead = true;
 					}
 				}
 			}
-			
+
 			var particles = [];
 			var mobs = [];
 			mobs.push(new mob(2, 2));
-			
+
 			function particle(x, y, z, Vx, Vy, Vz, bounce, weight, size, life, color)
-			{	
+			{
 				this.mat = new THREE.MeshBasicMaterial({color: color});
 				this.geometry = new THREE.Mesh(new THREE.PlaneGeometry(size, size), this.mat);
 				this.geometry.position.set(x, y, z);
@@ -184,11 +186,11 @@
 				this.kill = function()
 				{
 					scene.remove(this.geometry);
-					particles.splice(particles.indexOf(this), 1);		
+					particles.splice(particles.indexOf(this), 1);
 				}
 			}
-	
-			var dungeon = 
+
+			var dungeon =
 				[[1,1,1,1,1],
 				[1,0,0,0,1],
 				[1,0,0,0,1],
@@ -198,14 +200,14 @@
 				[1,0,0,0,1],
 				[1,0,0,0,1],
 				[1,1,1,1,1]];
-				
+
 			for(var y = 0; y < dungeon.length; y++)
 			{
 				for(var x = 0; x < dungeon[0].length; x++)
 				{
 					if( dungeon[y][x] == 1 )
 					{
-						addWall(x, y);					
+						addWall(x, y);
 					}
 				}
 			}
@@ -223,50 +225,70 @@
 				}
 				renderer.render(scene, camera);
 			};
-			
+
+			function cooldown(){
+				cooldowntimer = 0;
+			}
+
 			function handleMovement()
 			{
-				if( keyboard.pressed("F") )
+				if( keyboard.pressed("E") )
 				{
 					if( mobs[0].geometry.position.x == camera.position.x )
 					{
 						mobs[0].glib();
-					}				
+					}
 				}
-				if( keyboard.pressed("Q") )
+				if( keyboard.pressed("A") )
 				{
-					camera.rotation.y += LOOKSPEED;
+					if(cooldowntimer == 0){
+						camera.rotation.y +=  90 * Math.PI / 180
+						cooldowntimer = 1;
+						setTimeout(cooldown, CDTIME);
+					}
 				}
-				if( keyboard.pressed("E") )
+				if( keyboard.pressed("D") )
 				{
-					camera.rotation.y -= LOOKSPEED;
+					if(cooldowntimer == 0){
+						camera.rotation.y -=  90 * Math.PI / 180;
+						cooldowntimer = 1;
+						setTimeout(cooldown, CDTIME);
+					}
 				}
-				
+
 				if( keyboard.pressed("W"))
 				{
-					camera.translateZ( -MOVESPEED-PLAYERSIZE );
-					if(dungeon[Math.round(camera.position.z)][Math.round(camera.position.x)] == 1)
-					{
-						camera.translateZ( MOVESPEED + PLAYERSIZE );
-					}
-					else
-					{
-						camera.translateZ( PLAYERSIZE );
+					if(cooldowntimer == 0){
+						camera.translateZ( -MOVESPEED-PLAYERSIZE );
+						if(dungeon[Math.round(camera.position.z)][Math.round(camera.position.x)] == 1)
+						{
+							camera.translateZ( MOVESPEED + PLAYERSIZE );
+						}
+						else
+						{
+							camera.translateZ( PLAYERSIZE );
+						}
+						cooldowntimer = 1;
+						setTimeout(cooldown, CDTIME);
 					}
 				}
 				if( keyboard.pressed("S"))
 				{
-					camera.translateZ( MOVESPEED+PLAYERSIZE );
-					if(dungeon[Math.round(camera.position.z)][Math.round(camera.position.x)] == 1)
-					{
+					if(cooldowntimer == 0){
+						camera.translateZ( MOVESPEED+PLAYERSIZE );
+						if(dungeon[Math.round(camera.position.z)][Math.round(camera.position.x)] == 1)
+						{
 						camera.translateZ( -MOVESPEED-PLAYERSIZE );
-					}
-					else
-					{
+						}
+						else
+						{
 						camera.translateZ( -PLAYERSIZE );
+						}
+						cooldowntimer = 1;
+						setTimeout(cooldown, CDTIME)
 					}
 				}
-				if( keyboard.pressed("A"))
+				/*if( keyboard.pressed("A"))
 				{
 					camera.translateX( -MOVESPEED -PLAYERSIZE );
 					if(dungeon[Math.round(camera.position.z)][Math.round(camera.position.x)] == 1)
@@ -289,8 +311,8 @@
 					{
 						camera.translateX( -PLAYERSIZE );
 					}
-				}
-				
+				}*/
+
 				floor.position.set(camera.position.x, -0.5, camera.position.z);
 				celing.position.set(camera.position.x, 0.5, camera.position.z);
 				floorTex.offset.x = camera.position.x;
